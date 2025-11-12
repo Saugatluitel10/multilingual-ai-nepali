@@ -1,0 +1,32 @@
+# Misinformation Detection Model Configuration
+
+model:
+  name: "xlm-roberta-base"
+  num_labels: 2  # true, false
+  adapter_config:
+    type: "pfeiffer"
+    reduction_factor: 16
+    non_linearity: "relu"
+
+training:
+  batch_size: 8
+  learning_rate: 1e-5
+  num_epochs: 15
+  warmup_steps: 1000
+  weight_decay: 0.01
+  gradient_accumulation_steps: 4
+  max_grad_norm: 1.0
+  
+data:
+  train_path: "data/processed/misinfo_train.csv"
+  val_path: "data/processed/misinfo_val.csv"
+  test_path: "data/processed/misinfo_test.csv"
+  max_length: 256
+  augmentation: true
+  augmentation_factor: 3
+
+output:
+  model_dir: "models/misinfo"
+  log_dir: "logs/misinfo"
+  save_steps: 1000
+  eval_steps: 1000

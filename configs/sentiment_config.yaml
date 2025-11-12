@@ -1,0 +1,32 @@
+# Sentiment Analysis Model Configuration
+
+model:
+  name: "xlm-roberta-base"
+  num_labels: 3  # positive, negative, neutral
+  adapter_config:
+    type: "pfeiffer"
+    reduction_factor: 16
+    non_linearity: "relu"
+
+training:
+  batch_size: 16
+  learning_rate: 2e-5
+  num_epochs: 10
+  warmup_steps: 500
+  weight_decay: 0.01
+  gradient_accumulation_steps: 2
+  max_grad_norm: 1.0
+  
+data:
+  train_path: "data/processed/sentiment_train.csv"
+  val_path: "data/processed/sentiment_val.csv"
+  test_path: "data/processed/sentiment_test.csv"
+  max_length: 128
+  augmentation: true
+  augmentation_factor: 2
+
+output:
+  model_dir: "models/sentiment"
+  log_dir: "logs/sentiment"
+  save_steps: 500
+  eval_steps: 500
