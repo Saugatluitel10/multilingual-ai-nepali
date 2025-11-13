@@ -1,0 +1,165 @@
+{
+  "project": {
+    "name": "multilingual-ai-nepali",
+    "version": "0.1.0",
+    "description": "Multilingual AI for Low-Resource Languages (Nepali-English)",
+    "type": "ml-nlp"
+  },
+  "environment": {
+    "python_version": "3.10",
+    "environment_file": "environment.yml",
+    "requirements_file": "requirements.txt",
+    "env_file": ".env"
+  },
+  "data": {
+    "validation": {
+      "enabled": true,
+      "rules": [
+        {
+          "name": "check_text_column",
+          "type": "column_exists",
+          "column": "text",
+          "required": true
+        },
+        {
+          "name": "check_label_column",
+          "type": "column_exists",
+          "column": "label",
+          "required": true
+        },
+        {
+          "name": "check_text_not_empty",
+          "type": "not_null",
+          "column": "text"
+        },
+        {
+          "name": "check_text_length",
+          "type": "min_length",
+          "column": "text",
+          "min_value": 1
+        },
+        {
+          "name": "check_label_range",
+          "type": "value_range",
+          "column": "label",
+          "min_value": 0,
+          "max_value": 2,
+          "description": "Labels should be 0 (negative), 1 (neutral), or 2 (positive)"
+        }
+      ],
+      "on_failure": "warn"
+    },
+    "ingestion": {
+      "schedule": {
+        "enabled": false,
+        "cron": "0 0 * * *",
+        "description": "Daily data re-ingestion at midnight"
+      },
+      "sources": [
+        {
+          "name": "local_csv",
+          "type": "csv",
+          "path": "data/raw/*.csv",
+          "encoding": "utf-8"
+        },
+        {
+          "name": "local_json",
+          "type": "json",
+          "path": "data/raw/*.json",
+          "encoding": "utf-8"
+        },
+        {
+          "name": "huggingface",
+          "type": "huggingface_dataset",
+          "enabled": false,
+          "datasets": []
+        }
+      ],
+      "preprocessing": {
+        "enabled": true,
+        "steps": [
+          "normalize_unicode",
+          "remove_urls",
+          "remove_mentions",
+          "remove_emojis",
+          "normalize_whitespace"
+        ]
+      },
+      "augmentation": {
+        "enabled": true,
+        "methods": ["swap", "delete", "insert"],
+        "advanced_methods": {
+          "enabled": false,
+          "methods": ["back_translate", "code_mix"],
+          "note": "Advanced methods require GPU and are slower"
+        },
+        "augmentation_factor": 2
+      }
+    },
+    "output": {
+      "processed_dir": "data/processed",
+      "synthetic_dir": "data/synthetic",
+      "format": "csv"
+    }
+  },
+  "models": {
+    "default_tokenizer": "xlm-roberta-base",
+    "supported_models": [
+      "xlm-roberta-base",
+      "xlm-roberta-large",
+      "indicbert",
+      "muril",
+      "mt5-base",
+      "mbert"
+    ],
+    "cache_dir": "models/cache",
+    "checkpoints_dir": "models"
+  },
+  "training": {
+    "default_config": "configs/sentiment_config.yaml",
+    "output_dir": "models",
+    "logs_dir": "logs",
+    "tensorboard": {
+      "enabled": true,
+      "log_dir": "logs/tensorboard"
+    },
+    "wandb": {
+      "enabled": false,
+      "project": "multilingual-ai-nepali",
+      "entity": null
+    }
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": true,
+    "workers": 1
+  },
+  "testing": {
+    "test_dir": "tests",
+    "coverage": {
+      "enabled": true,
+      "min_coverage": 80
+    }
+  },
+  "monitoring": {
+    "data_drift": {
+      "enabled": false,
+      "check_interval": "weekly"
+    },
+    "model_performance": {
+      "enabled": false,
+      "metrics": ["accuracy", "f1", "precision", "recall"]
+    }
+  },
+  "automation": {
+    "pre_commit": {
+      "enabled": false,
+      "hooks": ["format", "lint", "test"]
+    },
+    "ci_cd": {
+      "enabled": false,
+      "platform": "github_actions"
+    }
+  }
+}
