@@ -1,4 +1,21 @@
+# =========================================
 # Sentiment Analysis Model Configuration
+#
+# Usage:
+#   Train with standard Hugging Face model:
+#     python3 src/training/train_sentiment.py --config configs/sentiment_config.yaml --model_type hf
+#
+#   Train with adapters (efficient fine-tuning):
+#     python3 src/training/train_sentiment.py --config configs/sentiment_config.yaml --model_type adapter
+#
+# Adapter config options:
+#   - type: Adapter architecture (e.g., "pfeiffer")
+#   - reduction_factor: Bottleneck size (smaller = more parameter-efficient)
+#   - non_linearity: Activation function ("relu" or "gelu")
+#
+# See README and TRAINING.md for more details.
+# =========================================
+
 
 model:
   name: "xlm-roberta-base"

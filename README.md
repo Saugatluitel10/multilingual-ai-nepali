@@ -41,6 +41,49 @@ multilingual-ai-nepali/
 └── README.md            # This file
 ```
 
+## 🏋️‍♂️ Model Training & Adapters
+
+- See [`TRAINING.md`](./TRAINING.md) for detailed instructions on model training.
+- Supports both standard Hugging Face training and efficient adapter-based fine-tuning.
+- Example CLI usage:
+
+```bash
+# Standard training
+python3 src/training/train_sentiment.py --config configs/sentiment_config.yaml --model_type hf
+
+# Adapter-based training
+python3 src/training/train_sentiment.py --config configs/sentiment_config.yaml --model_type adapter
+```
+
+- For interactive experimentation, see `notebooks/adapter_training_example.ipynb`.
+
+### 🧪 Multitask Fine-Tuning with Synthetic Data
+
+- Fine-tune on both real and synthetic (augmented) data with a multitask objective:
+  - **Masked Language Modeling (MLM)** + **Classification**
+  - Logs metrics per language subset
+  - Supports experiment tracking with Weights & Biases
+
+**Example CLI:**
+```bash
+python3 src/training/fine_tune_llm.py \
+  --config configs/sentiment_config.yaml \
+  --model_type adapter \
+  --mlm_weight 1.0 \
+  --clf_weight 1.0 \
+  --experiment multilingual_mlm_clf
+```
+- Add a `synthetic_path` entry under `data:` in your config to include augmented data.
+
+**Example config block:**
+```yaml
+data:
+  train_path: "data/processed/sentiment_train.csv"
+  synthetic_path: "data/synthetic/sentiment_aug.csv"
+  val_path: "data/processed/sentiment_val.csv"
+  max_length: 128
+```
+
 ## 🛠️ Installation
 
 ```bash

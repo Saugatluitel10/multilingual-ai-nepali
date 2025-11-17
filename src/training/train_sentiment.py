@@ -21,6 +21,17 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from data.preprocess import TextPreprocessor
 from data.augmentation import MultilingualAugmenter
 
+# Import custom model modules
+from models.classification_model import MultilingualClassificationModel
+
+def load_adapter_config(model_config: dict) -> dict:
+    """Extract adapter config from model config dict."""
+    adapter_keys = ['adapter_config', 'reduction_factor', 'non_linearity', 'after_attention']
+    if 'adapter_config' in model_config:
+        return model_config['adapter_config']
+    # Support legacy flat configs
+    return {k: model_config[k] for k in adapter_keys if k in model_config}
+
 def load_config(config_path: str) -> dict:
     """Load configuration from YAML file"""
     with open(config_path, 'r') as f:
@@ -66,7 +77,7 @@ def compute_metrics(pred):
         'recall': recall
     }
 
-def train_model(config_path: str):
+def train_model(config_path: str, model_type: str = 'hf'):
     """Main training function"""
     # Load configuration
     config = load_config(config_path)
@@ -96,12 +107,20 @@ def train_model(config_path: str):
     print(f"Validation samples: {len(val_df)}")
     
     # Load tokenizer and model
-    print(f"Loading model: {config['model']['name']}")
+    print(f"Loading model: {config['model']['name']} ({model_type})")
     tokenizer = AutoTokenizer.from_pretrained(config['model']['name'])
-    model = AutoModelForSequenceClassification.from_pretrained(
-        config['model']['name'],
-        num_labels=config['model']['num_labels']
-    )
+    if model_type == 'adapter':
+        adapter_config = load_adapter_config(config['model'])
+        model = MultilingualClassificationModel(
+            model_name=config['model']['name'],
+            num_labels=config['model']['num_labels'],
+            adapter_config=adapter_config
+        )
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            config['model']['name'],
+            num_labels=config['model']['num_labels']
+        )
     
     # Prepare datasets
     train_dataset = prepare_dataset(train_df, tokenizer, config['data']['max_length'])
@@ -153,9 +172,11 @@ def train_model(config_path: str):
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Train sentiment analysis model with or without adapters.")
     parser.add_argument('--config', type=str, default='configs/sentiment_config.yaml',
                        help='Path to config file')
+    parser.add_argument('--model_type', type=str, default='hf', choices=['hf', 'adapter'],
+                       help='Model type: "hf" (HuggingFace) or "adapter" (with adapters)')
     args = parser.parse_args()
     
-    train_model(args.config)
+    train_model(args.config, model_type=args.model_type)
