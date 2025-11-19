@@ -14,6 +14,7 @@ from transformers import (
     Trainer,
     EarlyStoppingCallback
 )
+from training.custom_trainer import CustomTrainer
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
 import sys
@@ -60,7 +61,7 @@ def compute_metrics(pred):
         'recall': recall
     }
 
-def train_model(config_path: str, model_type: str = 'hf'):
+def train_model(config_path: str, model_type: str = 'hf', advanced_logging: bool = False):
     config = load_config(config_path)
     print("Loading data...")
     train_df = load_data(config['data']['train_path'])
@@ -120,7 +121,8 @@ def train_model(config_path: str, model_type: str = 'hf'):
         fp16=True,  # Mixed precision
         gradient_checkpointing=True
     )
-    trainer = Trainer(
+    trainer_cls = CustomTrainer if advanced_logging else Trainer
+    trainer = trainer_cls(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -133,6 +135,29 @@ def train_model(config_path: str, model_type: str = 'hf'):
     print("Saving model...")
     trainer.save_model(checkpoint_dir)
     tokenizer.save_pretrained(checkpoint_dir)
+
+    # Auto-generate evaluation summary
+    import json
+    from datetime import datetime
+    summary = {
+        'model_name': config['model']['name'],
+        'adapter': model_type == 'adapter',
+        'config': config,
+        'best_metric': trainer.state.best_metric,
+        'best_model_checkpoint': trainer.state.best_model_checkpoint,
+        'metrics': trainer.state.log_history,
+        'timestamp': datetime.now().isoformat()
+    }
+    md = f"""# Evaluation Summary\n\n- **Model:** {config['model']['name']}\n- **Adapter:** {model_type == 'adapter'}\n- **Best Metric:** {trainer.state.best_metric}\n- **Best Checkpoint:** {trainer.state.best_model_checkpoint}\n- **Timestamp:** {summary['timestamp']}\n\n## Metrics\n\n"""
+    for log in trainer.state.log_history:
+        if 'eval_loss' in log:
+            md += f"Step {log.get('step','?')}: " + ", ".join([f"{k}: {v:.4f}" for k, v in log.items() if isinstance(v, float)]) + "\n"
+    with open(os.path.join(checkpoint_dir, 'eval_summary.md'), 'w') as f:
+        f.write(md)
+    with open(os.path.join(checkpoint_dir, 'eval_summary.json'), 'w') as f:
+        json.dump(summary, f, indent=2)
+
+    print(f"\nAuto-generated evaluation summary at {checkpoint_dir}/eval_summary.md and .json")
     print("Training completed!")
 
 if __name__ == "__main__":
@@ -142,5 +167,6 @@ if __name__ == "__main__":
                        help='Path to config file')
     parser.add_argument('--model_type', type=str, default='hf', choices=['hf', 'adapter'],
                        help='Model type: \"hf\" (HuggingFace) or \"adapter\" (with adapters)')
+    parser.add_argument('--advanced_logging', action='store_true', help='Enable advanced GPU/memory/logging (CustomTrainer)')
     args = parser.parse_args()
-    train_model(args.config, model_type=args.model_type)
+    train_model(args.config, model_type=args.model_type, advanced_logging=args.advanced_logging)
