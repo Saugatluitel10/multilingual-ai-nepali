@@ -88,6 +88,48 @@ data:
 
 ```bash
 # Clone the repository
+```
+
+## 🌐 API Deployment & Usage
+
+### Run the API server (local)
+```bash
+uvicorn deploy.api_server:app --host 0.0.0.0 --port 8000
+```
+
+### Example requests (with API key)
+```bash
+# Sentiment
+curl -X POST http://localhost:8000/predict_sentiment \
+  -H 'x-api-key: supersecretkey' \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "यो राम्रो छ"}'
+
+# Misinformation
+curl -X POST http://localhost:8000/detect_misinformation \
+  -H 'x-api-key: supersecretkey' \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "This is false information."}'
+
+# Translation (auto-detects language)
+curl -X POST http://localhost:8000/translate_text \
+  -H 'x-api-key: supersecretkey' \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "यो राम्रो छ", "tgt_lang": "en"}'
+```
+
+- All endpoints require the `x-api-key` header (see `.env` or code for the key).
+- Rate limit: 10 requests per minute per IP.
+
+### API Documentation
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### Docker deployment (optional)
+```bash
+docker build -t multilingual-api .
+docker run -p 8000:8000 multilingual-api
+```
 git clone https://github.com/yourusername/multilingual-ai-nepali.git
 cd multilingual-ai-nepali
 
