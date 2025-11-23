@@ -78,6 +78,30 @@ python src/utils/hf_config.py
 - **Datasets**: 2.14.0+ (Hugging Face)
 - **FastAPI**: 0.104.0+ (API framework)
 - **Streamlit**: 1.28.0+ (UI framework)
+
+---
+
+## 🧪 Workspace QA & Deployment Checklist
+
+- [ ] **API Server:**
+  - Start with `uvicorn deploy.api_server:app --host 0.0.0.0 --port 8000`
+  - Test `/predict_sentiment`, `/detect_misinformation`, `/translate_text` endpoints
+  - Check `/health` and `/metrics` endpoints
+- [ ] **Streamlit Web App:**
+  - Run `streamlit run deploy/streamlit_app.py`
+  - Test all tasks (sentiment, misinformation, translation)
+- [ ] **Mobile Export:**
+  - Run `python3 deploy/mobile_export.py` for ONNX/TorchScript/quantized export
+- [ ] **Docker Compose:**
+  - Run `docker-compose up --build` to launch API, frontend, and Nginx
+- [ ] **Monitoring:**
+  - Confirm Sentry error tracking (if SENTRY_DSN is set)
+  - Confirm Prometheus metrics at `/metrics`
+- [ ] **Cloud/SSL:**
+  - Place SSL certs in `deploy/certs/` for HTTPS
+  - Deploy to your cloud provider as needed
+
+See the README for more details and troubleshooting tips.
 - **Sentencepiece**: 0.1.99+ (Tokenization)
 
 ### Optional Dependencies
