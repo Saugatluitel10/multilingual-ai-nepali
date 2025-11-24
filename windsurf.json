@@ -153,6 +153,31 @@
     }
   },
   "automation": {
+    "data_refresh": {
+      "trigger": "on_new_data",
+      "actions": ["retrain_model"],
+      "description": "Automatically retrain model when new data is ingested or processed."
+    },
+    "model_drift": {
+      "enabled": true,
+      "monitor": "accuracy",
+      "threshold": 0.02,
+      "actions": ["alert", "rollback_if_underperforms"],
+      "description": "Detect drift if accuracy drops by more than 2% from last stable version."
+    },
+    "rollback": {
+      "enabled": true,
+      "criteria": "last_stable_accuracy",
+      "actions": ["restore_last_stable_model"],
+      "description": "Automatically rollback if new model underperforms on validation set."
+    },
+    "experiment_tracking": {
+      "tool": "mlflow_or_windsurf",
+      "metrics": ["accuracy", "f1", "drift", "timestamp"],
+      "log_dir": "mlruns/" ,
+      "windsurf_experiment_view": true,
+      "description": "Track all retraining, drift, and rollback events in MLflow or Windsurf experiment view."
+    },
     "pre_commit": {
       "enabled": false,
       "hooks": ["format", "lint", "test"]
