@@ -30,16 +30,16 @@ if st.button("Submit"):
         "Content-Type": "application/json"
     }
     if endpoint == "Sentiment Analysis":
-        url = f"{API_URL}/predict_sentiment"
+        url = f"{API_URL}/predict/sentiment"
         payload = {"text": text}
     elif endpoint == "Misinformation Detection":
-        url = f"{API_URL}/detect_misinformation"
+        url = f"{API_URL}/predict/misinformation"
         payload = {"text": text}
     elif endpoint == "Translation":
-        url = f"{API_URL}/translate_text"
-        payload = {"text": text, "tgt_lang": tgt_lang}
+        url = f"{API_URL}/translate?target_language={tgt_lang}"
+        payload = {"text": text}
         if src_lang.strip():
-            payload["src_lang"] = src_lang.strip()
+            payload["language"] = src_lang.strip()
     else:
         st.error("Select a valid endpoint.")
         st.stop()
