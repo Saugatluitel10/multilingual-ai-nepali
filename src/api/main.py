@@ -7,14 +7,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import uvicorn
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-app = FastAPI(
-    title="Multilingual AI API",
-    description="NLP API for Nepali-English code-mixed text",
-    version="1.0.0"
-)
+from contextlib import asynccontextmanager
 
 # Request/Response Models
 class TextInput(BaseModel):
@@ -52,14 +47,32 @@ tokenizers = {
     "translation": None
 }
 
-@app.on_event("startup")
-async def load_models():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Load models on API startup"""
-    # TODO: Implement model loading
     print("Loading models...")
-    # models["sentiment"] = AutoModelForSequenceClassification.from_pretrained("models/sentiment")
-    # tokenizers["sentiment"] = AutoTokenizer.from_pretrained("models/sentiment")
+    try:
+        # Load Translation Model (NLLB-200)
+        print("Loading NLLB-200 model...")
+        model_name = "facebook/nllb-200-distilled-600M"
+        models["translation"] = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        tokenizers["translation"] = AutoTokenizer.from_pretrained(model_name)
+        print("✅ Translation model loaded!")
+    except Exception as e:
+        print(f"❌ Error loading translation model: {e}")
+    
     print("Models loaded successfully!")
+    yield
+    # Clean up resources if needed
+    models.clear()
+    tokenizers.clear()
+
+app = FastAPI(
+    title="Multilingual AI API",
+    description="NLP API for Nepali-English code-mixed text",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 @app.get("/")
 async def root():
@@ -128,10 +141,35 @@ async def translate_text(input_data: TextInput, target_language: str = "en"):
     Translate text between Nepali and English
     """
     try:
-        # TODO: Implement translation
+        if models["translation"] is None:
+            raise HTTPException(status_code=503, detail="Translation model not loaded")
+            
+        # Map languages to NLLB codes
+        lang_map = {
+            "en": "eng_Latn",
+            "ne": "npi_Deva",
+            "hi": "hin_Deva"
+        }
+        
+        # Detect source language if auto
+        src_lang_code = lang_map.get(input_data.language, "npi_Deva") # Default to Nepali if unknown/auto for now
+        tgt_lang_code = lang_map.get(target_language, "eng_Latn")
+        
+        tokenizer = tokenizers["translation"]
+        model = models["translation"]
+        
+        # Tokenize and translate
+        inputs = tokenizer(input_data.text, return_tensors="pt")
+        translated_tokens = model.generate(
+            **inputs, 
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang_code), 
+            max_length=128
+        )
+        translated_text = tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
+        
         return TranslationResponse(
             original_text=input_data.text,
-            translated_text="Translation coming soon...",
+            translated_text=translated_text,
             source_language=input_data.language,
             target_language=target_language
         )

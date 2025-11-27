@@ -4,6 +4,37 @@
 
 This project aims to build robust NLP systems that effectively handle Nepali-English code-mixed text for sentiment analysis and misinformation detection. By leveraging fine-tuned multilingual language models and adapter-based architectures with synthetic data augmentation, we overcome data scarcity challenges in low-resource languages.
 
+## 🚀 Running the Application
+
+### Quick Start (Local)
+Use the provided script to start both the API and Frontend:
+```bash
+./start.sh
+```
+- **API**: http://localhost:8000
+- **Frontend**: http://localhost:8501
+
+### Manual Start
+1. **Start API**:
+   ```bash
+   uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+   ```
+2. **Start Frontend**:
+   ```bash
+   streamlit run frontend/demo_app.py
+   ```
+
+## ☁️ Deployment
+
+### Procfile
+A `Procfile` is included for deployment on platforms like Heroku or Render. It currently starts the API.
+
+### Streamlit Cloud
+To deploy the frontend on Streamlit Cloud:
+1. Push this repository to GitHub.
+2. Connect your repository to Streamlit Cloud.
+3. Set the `API_URL` and `API_KEY` in the Streamlit Cloud secrets.
+
 ## 🚀 Key Features
 
 - **Multilingual Support**: Handles Nepali, English, and code-mixed text
