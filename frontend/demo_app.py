@@ -165,10 +165,18 @@ with tab3:
     
     with col1:
         trans_text = st.text_area("Source Text", height=150, key="trans_input", placeholder="Hello, how are you?")
-        target_lang = st.selectbox("Target Language", ["Nepali (ne)", "English (en)"])
+        target_lang = st.selectbox("Target Language", [
+            "Nepali (ne)", 
+            "English (en)", 
+            "Hindi (hi)", 
+            "French (fr)", 
+            "Spanish (es)", 
+            "Chinese (zh)"
+        ])
         translate_btn = st.button("Translate")
         
-        lang_code = "ne" if "Nepali" in target_lang else "en"
+        # Extract code from selection (e.g., "Nepali (ne)" -> "ne")
+        lang_code = target_lang.split("(")[-1].strip(")")
     
     with col2:
         st.markdown("#### Translation")

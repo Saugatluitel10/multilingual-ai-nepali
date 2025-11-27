@@ -1,0 +1,44 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-9.0.1, pluggy-1.6.0
+rootdir: /Users/saugatluitel/Downloads/multilingual-ai-nepali/multilingual-ai-nepali
+plugins: anyio-4.11.0, cov-7.0.0
+collected 1 item
+
+tests/test_api.py Loading models...
+Loading NLLB-200 model...
+✅ Translation model loaded!
+Loading Sentiment model...
+❌ Error loading translation model: name 'AutoModelForSequenceClassification' is not defined
+Models loaded successfully!
+❌ Error in predict_sentiment: 503: Sentiment model not loaded
+F
+
+=================================== FAILURES ===================================
+____________________________ test_predict_sentiment ____________________________
+
+client = <starlette.testclient.TestClient object at 0x10ab5dfd0>
+
+    def test_predict_sentiment(client):
+        # Test positive sentiment
+        response = client.post(
+            "/predict/sentiment",
+            json={"text": "I love this movie! It is amazing."},
+            headers={"x-api-key": "supersecretkey"}
+        )
+>       assert response.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+tests/test_api.py:24: AssertionError
+=============================== warnings summary ===============================
+tests/test_api.py::test_predict_sentiment
+  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+
+tests/test_api.py::test_predict_sentiment
+  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_api.py::test_predict_sentiment - assert 500 == 200
+======================== 1 failed, 2 warnings in 12.55s ========================
+<sys>:0: DeprecationWarning: builtin type swigvarlink has no __module__ attribute

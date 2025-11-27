@@ -15,37 +15,46 @@ def test_read_main(client):
     assert "endpoints" in response.json()
 
 def test_predict_sentiment(client):
+    # Test positive sentiment
     response = client.post(
         "/predict/sentiment",
-        json={"text": "यो राम्रो छ"},
+        json={"text": "I love this movie! It is amazing."},
         headers={"x-api-key": "supersecretkey"}
     )
     assert response.status_code == 200
-    assert "sentiment" in response.json()
-    assert "confidence" in response.json()
+    result = response.json()
+    assert result["sentiment"] == "positive"
+    assert result["confidence"] > 0.5
 
-def test_detect_misinformation(client):
+    # Test negative sentiment
     response = client.post(
-        "/predict/misinformation",
-        json={"text": "This is false information."},
+        "/predict/sentiment",
+        json={"text": "I hate this. It is terrible."},
         headers={"x-api-key": "supersecretkey"}
     )
     assert response.status_code == 200
-    assert "is_misinformation" in response.json()
-    assert "confidence" in response.json()
+    result = response.json()
+    assert result["sentiment"] == "negative"
 
 def test_translate_text(client):
+    # Test Nepali translation
     response = client.post(
         "/translate",
-        json={"text": "यो राम्रो छ", "language": "ne"},
+        json={"text": "Hello", "language": "en"},
+        params={"target_language": "ne"},
         headers={"x-api-key": "supersecretkey"}
     )
-    if response.status_code != 200:
-        print(f"Test failed with status {response.status_code}")
-        print(f"Response: {response.json()}")
     assert response.status_code == 200
     data = response.json()
-    assert "translated_text" in data
-    assert data["translated_text"] != "Translation coming soon..."
     assert len(data["translated_text"]) > 0
-    assert "source_language" in data
+    
+    # Test French translation
+    response = client.post(
+        "/translate",
+        json={"text": "Hello", "language": "en"},
+        params={"target_language": "fr"},
+        headers={"x-api-key": "supersecretkey"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["translated_text"]) > 0

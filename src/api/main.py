@@ -7,7 +7,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSequenceClassification
+from scipy.special import softmax
+import numpy as np
 
 from contextlib import asynccontextmanager
 
@@ -58,6 +60,13 @@ async def lifespan(app: FastAPI):
         models["translation"] = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         tokenizers["translation"] = AutoTokenizer.from_pretrained(model_name)
         print("✅ Translation model loaded!")
+
+        # Load Sentiment Model (XLM-RoBERTa)
+        print("Loading Sentiment model...")
+        sent_model_name = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+        models["sentiment"] = AutoModelForSequenceClassification.from_pretrained(sent_model_name)
+        tokenizers["sentiment"] = AutoTokenizer.from_pretrained(sent_model_name)
+        print("✅ Sentiment model loaded!")
     except Exception as e:
         print(f"❌ Error loading translation model: {e}")
     
@@ -100,19 +109,42 @@ async def predict_sentiment(input_data: TextInput):
     Supports Nepali, English, and code-mixed text
     """
     try:
-        # TODO: Implement sentiment prediction
-        # For now, return mock response
+        if models["sentiment"] is None:
+             # Fallback to mock if model fails to load (or raise error)
+             # For now, let's raise error to be explicit
+             raise HTTPException(status_code=503, detail="Sentiment model not loaded")
+
+        tokenizer = tokenizers["sentiment"]
+        model = models["sentiment"]
+
+        # Tokenize and predict
+        encoded_input = tokenizer(input_data.text, return_tensors='pt')
+        output = model(**encoded_input)
+        scores = output[0][0].detach().numpy()
+        scores = softmax(scores)
+
+        # Labels: 0 -> Negative, 1 -> Neutral, 2 -> Positive
+        labels = ["negative", "neutral", "positive"]
+        ranking = np.argsort(scores)
+        ranking = ranking[::-1]
+        
+        top_sentiment = labels[ranking[0]]
+        confidence = float(scores[ranking[0]])
+        
+        probabilities = {
+            "negative": float(scores[0]),
+            "neutral": float(scores[1]),
+            "positive": float(scores[2])
+        }
+
         return SentimentResponse(
             text=input_data.text,
-            sentiment="positive",
-            confidence=0.85,
-            probabilities={
-                "positive": 0.85,
-                "negative": 0.10,
-                "neutral": 0.05
-            }
+            sentiment=top_sentiment,
+            confidence=confidence,
+            probabilities=probabilities
         )
     except Exception as e:
+        print(f"❌ Error in predict_sentiment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/misinformation", response_model=MisinfoResponse)
@@ -148,11 +180,21 @@ async def translate_text(input_data: TextInput, target_language: str = "en"):
         lang_map = {
             "en": "eng_Latn",
             "ne": "npi_Deva",
-            "hi": "hin_Deva"
+            "hi": "hin_Deva",
+            "fr": "fra_Latn",
+            "es": "spa_Latn",
+            "zh": "zho_Hans"
         }
         
         # Detect source language if auto
-        src_lang_code = lang_map.get(input_data.language, "npi_Deva") # Default to Nepali if unknown/auto for now
+        # Simple heuristic or default to Nepali if input looks like Devanagari, else English?
+        # For NLLB, providing the correct source language code improves quality.
+        # If 'auto', we might default to 'npi_Deva' if target is 'en', and 'eng_Latn' if target is 'ne'.
+        # But let's stick to the map.
+        
+        src_lang_code = lang_map.get(input_data.language, "npi_Deva") 
+        # If input language is not in map, default to Nepali (common use case here)
+        
         tgt_lang_code = lang_map.get(target_language, "eng_Latn")
         
         tokenizer = tokenizers["translation"]
@@ -160,6 +202,8 @@ async def translate_text(input_data: TextInput, target_language: str = "en"):
         
         # Tokenize and translate
         inputs = tokenizer(input_data.text, return_tensors="pt")
+        
+        # NLLB requires setting the forced_bos_token_id to the target language
         translated_tokens = model.generate(
             **inputs, 
             forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang_code), 
