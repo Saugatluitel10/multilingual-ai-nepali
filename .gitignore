@@ -69,3 +69,6 @@ htmlcov/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Ignore trained models
+models/

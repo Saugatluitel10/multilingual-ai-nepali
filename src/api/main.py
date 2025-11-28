@@ -67,6 +67,13 @@ async def lifespan(app: FastAPI):
         models["sentiment"] = AutoModelForSequenceClassification.from_pretrained(sent_model_name)
         tokenizers["sentiment"] = AutoTokenizer.from_pretrained(sent_model_name)
         print("✅ Sentiment model loaded!")
+
+        # Load Misinformation Model
+        print("Loading Misinformation model...")
+        misinfo_model_path = "models/misinfo/checkpoints"
+        models["misinfo"] = AutoModelForSequenceClassification.from_pretrained(misinfo_model_path)
+        tokenizers["misinfo"] = AutoTokenizer.from_pretrained(misinfo_model_path)
+        print("✅ Misinformation model loaded!")
     except Exception as e:
         print(f"❌ Error loading translation model: {e}")
     
@@ -154,15 +161,37 @@ async def predict_misinformation(input_data: TextInput):
     Supports Nepali, English, and code-mixed text
     """
     try:
-        # TODO: Implement misinformation detection
+        if models["misinfo"] is None:
+            raise HTTPException(status_code=503, detail="Misinformation model not loaded")
+
+        tokenizer = tokenizers["misinfo"]
+        model = models["misinfo"]
+
+        # Tokenize and predict
+        encoded_input = tokenizer(input_data.text, return_tensors='pt')
+        output = model(**encoded_input)
+        scores = output[0][0].detach().numpy()
+        scores = softmax(scores)
+
+        # Labels: 0 -> Real, 1 -> Fake
+        labels = ["real", "fake"]
+        ranking = np.argsort(scores)
+        ranking = ranking[::-1]
+        
+        top_label = labels[ranking[0]]
+        is_misinfo = top_label == "fake"
+        confidence = float(scores[ranking[0]])
+        
+        probabilities = {
+            "real": float(scores[0]),
+            "fake": float(scores[1])
+        }
+
         return MisinfoResponse(
             text=input_data.text,
-            is_misinformation=False,
-            confidence=0.92,
-            probabilities={
-                "true": 0.92,
-                "false": 0.08
-            }
+            is_misinformation=is_misinfo,
+            confidence=confidence,
+            probabilities=probabilities
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
