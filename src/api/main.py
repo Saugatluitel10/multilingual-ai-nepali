@@ -137,6 +137,10 @@ async def predict_sentiment(input_data: TextInput):
         
         top_sentiment = labels[ranking[0]]
         confidence = float(scores[ranking[0]])
+
+        # If confidence is low, classify as Uncertain
+        if confidence < 0.6:
+            top_sentiment = "Uncertain"
         
         probabilities = {
             "negative": float(scores[0]),

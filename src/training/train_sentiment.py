@@ -13,7 +13,7 @@ from transformers import (
     Trainer,
     EarlyStoppingCallback
 )
-from training.custom_trainer import CustomTrainer
+from .custom_trainer import CustomTrainer
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
 import sys
@@ -141,7 +141,7 @@ def train_model(config_path: str, model_type: str = 'hf', advanced_logging: bool
         warmup_steps=config['training']['warmup_steps'],
         gradient_accumulation_steps=config['training']['gradient_accumulation_steps'],
         max_grad_norm=config['training']['max_grad_norm'],
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=config['output']['eval_steps'],
         save_steps=config['output']['save_steps'],
         save_total_limit=3,
